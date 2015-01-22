@@ -1,0 +1,25 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "internaljoke@zoho.com",
+    "longName": "project",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/creature.png",
+                "name": "CREATURE_WAKE",
+                "type": "png"
+            }
+        ]
+    },
+    "shortName": "project",
+    "uuid": "09855579-4787-43b6-bda8-6f46a6b62781",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
