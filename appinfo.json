@@ -9,6 +9,16 @@
     "resources": {
         "media": [
             {
+                "file": "images/creature_sleep.png",
+                "name": "CREATURE_SLEEP",
+                "type": "png"
+            },
+            {
+                "file": "images/creature_hurt.png",
+                "name": "CREATURE_HURT",
+                "type": "png"
+            },
+            {
                 "file": "images/creature.png",
                 "name": "CREATURE_WAKE",
                 "type": "png"

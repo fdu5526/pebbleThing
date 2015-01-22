@@ -7,6 +7,8 @@
 #define ACCEL_STEP_MS 50
 #define VIBRATE_FACTOR 2.4
 #define BOUNCE_FACTOR 750
+#define MAX_HURT_COUNT 100
+#define MAX_WAKE_COUNT 250
   
 // vector in 2D
 typedef struct Vec2d {
@@ -29,15 +31,17 @@ static GRect window_frame;
 static Layer *disc_layer;
 static AppTimer *timer;
 
-static GBitmap *creature_bitmap;
-static RotBitmapLayer *s_bitmap_layer;
+static GBitmap *creature_wake_bitmap;
+static GBitmap *creature_hurt_bitmap;
+static GBitmap *creature_sleep_bitmap;
+static RotBitmapLayer *wake_bitmap_layer;
+static RotBitmapLayer *hurt_bitmap_layer;
+static RotBitmapLayer *sleep_bitmap_layer;
 static int32_t rotationAngle;
 static double rotationRate;
 
-// get mass based on size of circle
-static double disc_calc_mass(Disc *disc) {
-  return MATH_PI * disc->radius * disc->radius * DISC_DENSITY;
-}
+static int hurtCount, wakeCount;
+
 
 // initialize a single disc
 static void disc_init(Disc *disc) {
@@ -83,7 +87,15 @@ static void disc_update(Disc *disc) {
     
     // vibrate
     if(disc->vel.x > VIBRATE_FACTOR || disc->vel.x < -VIBRATE_FACTOR)
+    {
       vibes_short_pulse();
+      hurtCount = MAX_HURT_COUNT;
+      wakeCount = MAX_WAKE_COUNT;
+    }
+    else if(disc->vel.x > VIBRATE_FACTOR/2.0 || disc->vel.x < -VIBRATE_FACTOR/2.0)
+    {
+      wakeCount = MAX_WAKE_COUNT;
+    }
   }
   // bounce y
   if ((disc->pos.y < 0 && disc->vel.y < 0)
@@ -99,7 +111,15 @@ static void disc_update(Disc *disc) {
     
     // vibrate
     if(disc->vel.y > VIBRATE_FACTOR || disc->vel.y < -VIBRATE_FACTOR)
+    {
       vibes_short_pulse();
+      hurtCount = MAX_HURT_COUNT;
+      wakeCount = MAX_WAKE_COUNT;
+    }
+    else if(disc->vel.y > VIBRATE_FACTOR/2.0 || disc->vel.y < -VIBRATE_FACTOR/2.0)
+    {
+      wakeCount = MAX_WAKE_COUNT;
+    }
   }
   
   // euler integration
@@ -109,17 +129,43 @@ static void disc_update(Disc *disc) {
 
 // draw the circle
 static void disc_draw(GContext *ctx, Disc *disc) {
+  GRect r = GRect(disc->pos.x, disc->pos.y, 30, 30);
   
-  layer_set_frame((Layer*)s_bitmap_layer, GRect(disc->pos.x, disc->pos.y, 30, 30));
-  rot_bitmap_layer_set_angle(s_bitmap_layer, rotationAngle);
+  // decide which sprite to show
+  if(hurtCount == 0) // not hurt
+  {
+    if(wakeCount == 0) // asleep
+    {
+      layer_set_hidden((Layer*)sleep_bitmap_layer, false);
+      layer_set_hidden((Layer*)hurt_bitmap_layer, true);
+      layer_set_hidden((Layer*)wake_bitmap_layer, true);
+      layer_set_frame((Layer*)sleep_bitmap_layer, r);
+      rot_bitmap_layer_set_angle(sleep_bitmap_layer, rotationAngle);
+    }
+    else // still awake
+    {
+      layer_set_hidden((Layer*)wake_bitmap_layer, false);
+      layer_set_hidden((Layer*)hurt_bitmap_layer, true);
+      layer_set_hidden((Layer*)sleep_bitmap_layer, true);
+      layer_set_frame((Layer*)wake_bitmap_layer, r);
+      rot_bitmap_layer_set_angle(wake_bitmap_layer, rotationAngle);
+      wakeCount--;
+    }
+  }
+  else // hurt
+  {
+    layer_set_hidden((Layer*)hurt_bitmap_layer, false);
+    layer_set_hidden((Layer*)wake_bitmap_layer, true);
+    layer_set_hidden((Layer*)sleep_bitmap_layer, true);
+    layer_set_frame((Layer*)hurt_bitmap_layer, r);
+    rot_bitmap_layer_set_angle(hurt_bitmap_layer, rotationAngle);
+    hurtCount--;
+  }
+  
+  // update rotation
   rotationAngle+=(int32_t)rotationRate;
   rotationAngle %= 0x10000;
   rotationRate *= 0.95;
-  
-  //graphics_draw_bitmap_in_rect(ctx, creature_bitmap, 
-    //                           GRect(disc->pos.x, disc->pos.y, 19, 21));
-  //graphics_context_set_fill_color(ctx, GColorWhite);
-  //graphics_fill_circle(ctx, GPoint(disc->pos.x, disc->pos.y), disc->radius);
 }
 
 // draw each circle
@@ -129,7 +175,7 @@ static void disc_layer_update_callback(Layer *me, GContext *ctx) {
   }
 }
 
-// draw each circle
+// called on a loop
 static void timer_callback(void *data) {
   AccelData accel = (AccelData) { .x = 0, .y = 0, .z = 0 };
 
@@ -159,19 +205,35 @@ static void window_load(Window *window) {
     disc_init(&discs[i]);
   }
   
-  creature_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_WAKE);
-  s_bitmap_layer = rot_bitmap_layer_create(creature_bitmap);
+  creature_wake_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_WAKE);
+  creature_hurt_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_HURT);
+  creature_sleep_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_SLEEP);
+  wake_bitmap_layer = rot_bitmap_layer_create(creature_wake_bitmap);
+  hurt_bitmap_layer = rot_bitmap_layer_create(creature_hurt_bitmap);
+  sleep_bitmap_layer = rot_bitmap_layer_create(creature_sleep_bitmap);
   rotationAngle = 0;
   rotationRate = 0;
+  wakeCount = 0;
+  hurtCount = 0;
     
-  layer_add_child(window_layer, (Layer*)s_bitmap_layer);
+  layer_add_child(window_layer, (Layer*)wake_bitmap_layer);
+  layer_add_child(window_layer, (Layer*)hurt_bitmap_layer);
+  layer_add_child(window_layer, (Layer*)sleep_bitmap_layer);
+  
+  layer_set_hidden((Layer*)hurt_bitmap_layer, true);
+  layer_set_hidden((Layer*)wake_bitmap_layer, true);
 }
 
 // deinitialize window
 static void window_unload(Window *window) {
-  gbitmap_destroy(creature_bitmap);
+  gbitmap_destroy(creature_wake_bitmap);
+  gbitmap_destroy(creature_hurt_bitmap);
+  gbitmap_destroy(creature_sleep_bitmap);
+  
   layer_destroy(disc_layer);
-  rot_bitmap_layer_destroy(s_bitmap_layer);
+  rot_bitmap_layer_destroy(wake_bitmap_layer);
+  rot_bitmap_layer_destroy(hurt_bitmap_layer);
+  rot_bitmap_layer_destroy(sleep_bitmap_layer);
 
 }
 
