@@ -5,6 +5,7 @@
 #define DISC_DENSITY 0.25
 #define ACCEL_RATIO 0.05
 #define ACCEL_STEP_MS 50
+#define VIBRATE_FACTOR 2.2
   
 // vector in 2D
 typedef struct Vec2d {
@@ -42,8 +43,8 @@ static void disc_init(Disc *disc) {
   disc->pos.y = frame.size.h/2;
   disc->vel.x = 0;
   disc->vel.y = 0;
-  disc->radius = 7;
-  disc->mass = disc_calc_mass(disc);
+  disc->radius = 22;
+  disc->mass = MATH_PI * 8 * 8 * DISC_DENSITY;
 }
 
 // euler integration on force, update velocity
@@ -69,11 +70,19 @@ static void disc_update(Disc *disc) {
   if ((disc->pos.x - disc->radius < 0 && disc->vel.x < 0)
     || (disc->pos.x + disc->radius > frame.size.w && disc->vel.x > 0)) {
     disc->vel.x = -disc->vel.x * e;
+    
+    // vibrate
+    if(disc->vel.x > VIBRATE_FACTOR || disc->vel.x < -VIBRATE_FACTOR)
+      vibes_short_pulse();
   }
   // bounce y
   if ((disc->pos.y - disc->radius < 0 && disc->vel.y < 0)
     || (disc->pos.y + disc->radius > frame.size.h && disc->vel.y > 0)) {
     disc->vel.y = -disc->vel.y * e;
+    
+    // vibrate
+    if(disc->vel.y > VIBRATE_FACTOR || disc->vel.y < -VIBRATE_FACTOR)
+      vibes_short_pulse();
   }
   
   // euler integration
@@ -84,7 +93,9 @@ static void disc_update(Disc *disc) {
 // draw the circle
 static void disc_draw(GContext *ctx, Disc *disc) {
   graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_circle(ctx, GPoint(disc->pos.x, disc->pos.y), disc->radius);
+  graphics_draw_bitmap_in_rect(ctx, creature_bitmap, 
+                               GRect(disc->pos.x, disc->pos.y, 19, 21));
+  //graphics_fill_circle(ctx, GPoint(disc->pos.x, disc->pos.y), disc->radius);
 }
 
 // draw each circle
@@ -125,10 +136,10 @@ static void window_load(Window *window) {
   }
   
   creature_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_WAKE);
-  s_bitmap_layer = bitmap_layer_create(GRect(5, 5, 48, 48));
-  bitmap_layer_set_bitmap(s_bitmap_layer, creature_bitmap);
+  //s_bitmap_layer = bitmap_layer_create(GRect(5, 5, 48, 48));
+  //bitmap_layer_set_bitmap(s_bitmap_layer, creature_bitmap);
     
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
+  //layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
 }
 
 // deinitialize window
