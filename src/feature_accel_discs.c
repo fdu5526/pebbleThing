@@ -92,9 +92,11 @@ static void disc_update(Disc *disc) {
 
 // draw the circle
 static void disc_draw(GContext *ctx, Disc *disc) {
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_draw_bitmap_in_rect(ctx, creature_bitmap, 
-                               GRect(disc->pos.x, disc->pos.y, 19, 21));
+  
+  layer_set_frame((Layer*)s_bitmap_layer, GRect(disc->pos.x, disc->pos.y, 19, 21));
+  //graphics_draw_bitmap_in_rect(ctx, creature_bitmap, 
+    //                           GRect(disc->pos.x, disc->pos.y, 19, 21));
+  //graphics_context_set_fill_color(ctx, GColorWhite);
   //graphics_fill_circle(ctx, GPoint(disc->pos.x, disc->pos.y), disc->radius);
 }
 
@@ -136,15 +138,18 @@ static void window_load(Window *window) {
   }
   
   creature_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_WAKE);
-  //s_bitmap_layer = bitmap_layer_create(GRect(5, 5, 48, 48));
-  //bitmap_layer_set_bitmap(s_bitmap_layer, creature_bitmap);
+  s_bitmap_layer = bitmap_layer_create(GRect(5, 5, 48, 48));
+  bitmap_layer_set_bitmap(s_bitmap_layer, creature_bitmap);
     
-  //layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
 }
 
 // deinitialize window
 static void window_unload(Window *window) {
+  gbitmap_destroy(creature_bitmap);
   layer_destroy(disc_layer);
+  bitmap_layer_destroy(s_bitmap_layer);
+
 }
 
 
