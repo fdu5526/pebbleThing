@@ -30,6 +30,7 @@ static AppTimer *timer;
 
 static GBitmap *creature_bitmap;
 static RotBitmapLayer *s_bitmap_layer;
+static int32_t rotationAngle;
 
 // get mass based on size of circle
 static double disc_calc_mass(Disc *disc) {
@@ -67,8 +68,8 @@ static void disc_update(Disc *disc) {
   double e = 0.5;
   
   // bounce x
-  if ((disc->pos.x - disc->radius < -11 && disc->vel.x < 0)
-    || (disc->pos.x + disc->radius > frame.size.w-11 && disc->vel.x > 0)) {
+  if ((disc->pos.x < 0 && disc->vel.x < 0)
+    || (disc->pos.x + 2*disc->radius > frame.size.w && disc->vel.x > 0)) {
     disc->vel.x = -disc->vel.x * e;
     
     // vibrate
@@ -76,8 +77,8 @@ static void disc_update(Disc *disc) {
       vibes_short_pulse();
   }
   // bounce y
-  if ((disc->pos.y - disc->radius < -11 && disc->vel.y < 0)
-    || (disc->pos.y + disc->radius > frame.size.h-11 && disc->vel.y > 0)) {
+  if ((disc->pos.y < 0 && disc->vel.y < 0)
+    || (disc->pos.y + 2*disc->radius > frame.size.h && disc->vel.y > 0)) {
     disc->vel.y = -disc->vel.y * e;
     
     // vibrate
@@ -94,6 +95,9 @@ static void disc_update(Disc *disc) {
 static void disc_draw(GContext *ctx, Disc *disc) {
   
   layer_set_frame((Layer*)s_bitmap_layer, GRect(disc->pos.x, disc->pos.y, 40, 40));
+  rot_bitmap_layer_set_angle(s_bitmap_layer, rotationAngle);
+  rotationAngle+=100;
+  rotationAngle %= 0x10000;
   //graphics_draw_bitmap_in_rect(ctx, creature_bitmap, 
     //                           GRect(disc->pos.x, disc->pos.y, 19, 21));
   //graphics_context_set_fill_color(ctx, GColorWhite);
@@ -139,6 +143,7 @@ static void window_load(Window *window) {
   
   creature_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_WAKE);
   s_bitmap_layer = rot_bitmap_layer_create(creature_bitmap);
+  rotationAngle = 0;
     
   layer_add_child(window_layer, (Layer*)s_bitmap_layer);
 }
