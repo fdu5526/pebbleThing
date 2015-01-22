@@ -5,7 +5,8 @@
 #define DISC_DENSITY 0.25
 #define ACCEL_RATIO 0.05
 #define ACCEL_STEP_MS 50
-#define VIBRATE_FACTOR 2222.2
+#define VIBRATE_FACTOR 2.4
+#define BOUNCE_FACTOR 750
   
 // vector in 2D
 typedef struct Vec2d {
@@ -31,6 +32,7 @@ static AppTimer *timer;
 static GBitmap *creature_bitmap;
 static RotBitmapLayer *s_bitmap_layer;
 static int32_t rotationAngle;
+static double rotationRate;
 
 // get mass based on size of circle
 static double disc_calc_mass(Disc *disc) {
@@ -72,6 +74,13 @@ static void disc_update(Disc *disc) {
     || (disc->pos.x + 2*disc->radius > frame.size.w && disc->vel.x > 0)) {
     disc->vel.x = -disc->vel.x * e;
     
+    // rotate on bounce
+    rotationRate = -rotationRate;
+    if(rotationRate > 0)
+      rotationRate += BOUNCE_FACTOR*disc->vel.x;
+    else
+      rotationRate -= BOUNCE_FACTOR*disc->vel.x;
+    
     // vibrate
     if(disc->vel.x > VIBRATE_FACTOR || disc->vel.x < -VIBRATE_FACTOR)
       vibes_short_pulse();
@@ -80,6 +89,13 @@ static void disc_update(Disc *disc) {
   if ((disc->pos.y < 0 && disc->vel.y < 0)
     || (disc->pos.y + 2*disc->radius > frame.size.h && disc->vel.y > 0)) {
     disc->vel.y = -disc->vel.y * e;
+    
+    // rotate on bounce
+    rotationRate = -rotationRate;
+    if(rotationRate > 0)
+      rotationRate += BOUNCE_FACTOR*disc->vel.y;
+    else
+      rotationRate -= BOUNCE_FACTOR*disc->vel.y;
     
     // vibrate
     if(disc->vel.y > VIBRATE_FACTOR || disc->vel.y < -VIBRATE_FACTOR)
@@ -94,10 +110,12 @@ static void disc_update(Disc *disc) {
 // draw the circle
 static void disc_draw(GContext *ctx, Disc *disc) {
   
-  layer_set_frame((Layer*)s_bitmap_layer, GRect(disc->pos.x, disc->pos.y, 40, 40));
+  layer_set_frame((Layer*)s_bitmap_layer, GRect(disc->pos.x, disc->pos.y, 30, 30));
   rot_bitmap_layer_set_angle(s_bitmap_layer, rotationAngle);
-  rotationAngle+=100;
+  rotationAngle+=(int32_t)rotationRate;
   rotationAngle %= 0x10000;
+  rotationRate *= 0.95;
+  
   //graphics_draw_bitmap_in_rect(ctx, creature_bitmap, 
     //                           GRect(disc->pos.x, disc->pos.y, 19, 21));
   //graphics_context_set_fill_color(ctx, GColorWhite);
@@ -144,6 +162,7 @@ static void window_load(Window *window) {
   creature_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CREATURE_WAKE);
   s_bitmap_layer = rot_bitmap_layer_create(creature_bitmap);
   rotationAngle = 0;
+  rotationRate = 0;
     
   layer_add_child(window_layer, (Layer*)s_bitmap_layer);
 }
