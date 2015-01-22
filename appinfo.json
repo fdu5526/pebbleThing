@@ -9,18 +9,23 @@
     "resources": {
         "media": [
             {
+                "file": "images/zzz.png",
+                "name": "ZZZ",
+                "type": "png"
+            },
+            {
                 "file": "images/creature_sleep.png",
                 "name": "CREATURE_SLEEP",
                 "type": "png"
             },
             {
-                "file": "images/creature_hurt.png",
-                "name": "CREATURE_HURT",
+                "file": "images/creature.png",
+                "name": "CREATURE_WAKE",
                 "type": "png"
             },
             {
-                "file": "images/creature.png",
-                "name": "CREATURE_WAKE",
+                "file": "images/creature_hurt.png",
+                "name": "CREATURE_HURT",
                 "type": "png"
             }
         ]
